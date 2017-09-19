@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -22,27 +23,54 @@ type SSHClient struct {
 	session  *ssh.Session
 	w        io.WriteCloser
 	r        io.Reader
+	in       chan int
+	out      chan []byte
+	quit     chan int
 }
 
-func (c *SSHClient) Enter(input string) {
-	c.w.Write([]byte(input + "\n"))
+func (c *SSHClient) Enter(input string) error {
+	_, err := c.w.Write([]byte(input + "\n"))
+	return err
 }
 
 //Expect reads the session stdout and checks if the expected string exists or not.
 func (c *SSHClient) Expect(expected string, timeout time.Duration) error {
 	buf := bytes.NewBuffer([]byte{})
 
-	rbuf := make([]byte, 32*1024)
+	t1 := time.NewTimer(timeout)
+	c.in <- 1
 
 	for {
-		n, err := c.r.Read(rbuf)
-		if err != nil {
-			return err
+		select {
+		case <-t1.C:
+			return errors.New("Timeout")
+		case res := <-c.out:
+			t1.Stop()
+			buf.Write(res)
+			fmt.Printf("%s", string(res))
+			if strings.Contains(buf.String(), expected) {
+				return nil
+			}
+			c.in <- 1
+			t1.Reset(timeout)
 		}
 
-		buf.Write(rbuf[:n])
-		fmt.Printf("%s", string(rbuf[:n]))
-		if strings.Contains(buf.String(), expected) {
+	}
+}
+
+func (c *SSHClient) doRead() error {
+
+	for {
+		select {
+		case <-c.in:
+			rbuf := make([]byte, 32*1024)
+			n, err := c.r.Read(rbuf)
+			if err != nil {
+				fmt.Printf("doRead() exits due to %s\n", err.Error())
+				return err
+			}
+			c.out <- rbuf[:n]
+		case <-c.quit:
 			return nil
 		}
 	}
@@ -57,6 +85,11 @@ func (c *SSHClient) Close() {
 		defer c.session.Close()
 	}
 
+	c.quit <- 1 //doRead() quit
+
+	close(c.in)
+	close(c.out)
+	close(c.quit)
 }
 
 func NewSSHClient(ip string, user string, password string) (*SSHClient, error) {
@@ -107,38 +140,46 @@ func NewSSHClient(ip string, user string, password string) (*SSHClient, error) {
 		return nil, err
 	}
 
+	sshClient.in = make(chan int, 2)
+	sshClient.out = make(chan []byte, 2)
+	sshClient.quit = make(chan int, 1)
+
+	go sshClient.doRead()
+
 	return sshClient, nil
 }
 
+//Changes it to actual password before running
 var password = "hi!apple"
 
 func main() {
 	c, err := NewSSHClient("10.0.254.151", "back", password)
-	checkError(err, "Failed to create SSH client")
+	checkError(err)
 	defer c.Close()
 
-	c.Expect(">", 5*time.Second)
-	c.Enter("en 5")
+	checkError(c.Expect(">", 5*time.Second))
+	checkError(c.Enter("en 5"))
 
-	c.Expect("Password:", 5*time.Second)
-	c.Enter(password)
+	checkError(c.Expect("Password:", 5*time.Second))
+	checkError(c.Enter(password))
 
-	c.Expect("#", 5*time.Second)
-	c.Enter("copy run scp")
+	checkError(c.Expect("#", 5*time.Second))
+	checkError(c.Enter("copy run scp"))
 
-	c.Expect("Destination filename [scp]?", 5*time.Second)
-	c.Enter("cloud@10.99.70.34")
+	checkError(c.Expect("Destination filename [scp]?", 5*time.Second))
+	checkError(c.Enter("cloud@10.99.70.34"))
 
-	c.Expect("over write?", 5*time.Second)
-	c.Enter("")
-	c.Enter("exit")
+	checkError(c.Expect("over write?", 5*time.Second))
+	checkError(c.Enter(""))
+	checkError(c.Enter("exit"))
 
-	//Expect AND, OR?
+	//Expect AND, OR? How to do
+
 }
 
-func checkError(err error, info string) {
+func checkError(err error) {
 	if err != nil {
-		fmt.Printf("%s. error: %s\n", info, err)
+		fmt.Printf("error: %s\n", err)
 		os.Exit(1)
 	}
 }
