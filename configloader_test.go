@@ -12,8 +12,9 @@ func TestLoadFile(t *testing.T) {
 		fmt.Println(err.Error())
 	} else {
 		fmt.Println(*cfg)
-		for i, job := range (*cfg).JobConfigs {
-			fmt.Print("%d: %v \n", i, *job)
-		}
+		// for i, job := range (*cfg).JobConfigs {
+		// 	fmt.Printf("%d: %v \n", i, job)
+		// }
 	}
+
 }

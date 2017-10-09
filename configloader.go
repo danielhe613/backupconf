@@ -9,7 +9,7 @@ import (
 
 type Config struct {
 	GlobalConfig GlobalConfig `yaml:"global"`
-	JobConfigs   []*JobConfig `yaml:"jobs,omitempty"`
+	JobConfigs   []JobConfig  `yaml:"jobs,omitempty"`
 }
 
 type GlobalConfig struct {
@@ -25,12 +25,12 @@ type EssConfig struct {
 }
 
 type JobConfig struct {
-	JobName       string          `yaml:"job_name"`
-	Username      string          `yaml:"user_name"`
-	BackupServer  string          `yaml:"backup_server"`
-	BackupPath    string          `yaml:"backup_path"`
-	TargetConfigs []*TargetConfig `yaml:"targets"`
-	ActionConfigs []*ActionConfig `yaml:"actions"`
+	JobName       string         `yaml:"job_name"`
+	Username      string         `yaml:"user_name"`
+	BackupServer  string         `yaml:"backup_server"`
+	BackupPath    string         `yaml:"backup_path"`
+	TargetConfigs []TargetConfig `yaml:"targets"`
+	ActionConfigs []ActionConfig `yaml:"actions"`
 }
 
 type TargetConfig struct {
@@ -39,11 +39,12 @@ type TargetConfig struct {
 }
 
 type ActionConfig struct {
-	Label   string   `yaml:"label,omitempty"`
-	Send    string   `yaml:"send,omitempty"`
-	Expect  []string `yaml:"expect,omitempty"`
-	Goto    []string `yaml:"goto,omitempty"`
-	Timeout int      `yaml:"timeout,omitempty"`
+	Label   string         `yaml:"label,omitempty"`
+	Send    string         `yaml:"send,omitempty"`
+	Expect  string         `yaml:"expect,omitempty"`
+	Goto    string         `yaml:"goto,omitempty"`
+	Timeout int            `yaml:"timeout,omitempty"`
+	Expects []ActionConfig `yaml:"expects,omitempty"`
 }
 
 var (
