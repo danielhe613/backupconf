@@ -34,6 +34,7 @@ type ESSClient struct {
 
 func (c *ESSClient) uploadFile(filename string) error {
 
+	fmt.Println("Uploading configuration file " + filename)
 	return nil
 }
 
@@ -49,18 +50,23 @@ type Job struct {
 func (job *Job) execute(timeout time.Duration, uploader *ESSClient) {
 
 	for _, target := range job.Targets {
-		job.executeJobOnTarget(target, timeout, uploader)
+		err := job.executeJobOnTarget(target, timeout)
+
+		if err == nil {
+			uploader.uploadFile(target.Filename)
+		}
 	}
 
 }
 
-func (job *Job) executeJobOnTarget(target Target, timeout time.Duration, uploader *ESSClient) error {
+func (job *Job) executeJobOnTarget(target Target, timeout time.Duration) error {
 
 	sshClient, err := NewSSHClient(target.IP, job.Username, "passwordToModify")
 	if err != nil {
 		fmt.Println("Failed to create SSH Client to target " + target.IP)
 		return err
 	}
+	defer sshClient.Close()
 
 	for _, action := range job.Actions {
 		if action.Send != "" {
