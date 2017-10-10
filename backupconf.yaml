@@ -1,6 +1,5 @@
-global:
-  timeout: 10
-  ess:
+timeout: 10s
+ess:
       bucket_url: "demo"
       username: "abc"
       password: "abc" 
@@ -15,25 +14,33 @@ jobs:
         - ip: 10.0.254.152
           file_name: HZBA-B02-ACC-N3048A-running-config 
     actions:
-        - expect: ['rsa','Password:'] 
-          goto: ['','enterpassword']                     
-        
-        - send: 'yes'  
-          expect: ['Password:']
-        
-        - label: 'enterpassword'
-          send: 'back23433'  
-          expect: ['>'] 
-          timeout: 5
+        # Don't need to support multiple expects in version 1.0
+        # - expects:
+        #   - expect: 'key fingerprint'
+        #     goto: 'accept_fingerprint'   
+        #   - expect: 'Password:'
+        #     goto: 'enter_password'                       
 
-        - send: 'en 5'  
-          expect: ['Password:']
+        # - send: 'yes'
+        #   label: 'accept_fingerprint'
+          
+        - expect: 'Password:'
+          # label: 'enter_password'
 
-        - send: 'back23433'  
-          expect: ['#']
+        - send: 'back23433\n'
 
-        - send: 'copy run scp://cloud@10.99.70.34/home/cloud/backup'  
-          expect: ['Copy complete']
+        - expect: '#'
 
-        - label: 'exit'
-          send: 'exit'  
+        - send: 'copy running-config scp://cloud@10.99.70.34/home/cloud/backup\n'  
+
+        - expect: 'Enter vrf'
+
+        - send: '\n'
+
+        - expect: 'password:'
+
+        - send: 'back23433\n'
+
+        - expect: '#'
+
+        - send: 'exit\n'  

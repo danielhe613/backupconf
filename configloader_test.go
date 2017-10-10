@@ -11,10 +11,13 @@ func TestLoadFile(t *testing.T) {
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
-		fmt.Println(*cfg)
-		// for i, job := range (*cfg).JobConfigs {
-		// 	fmt.Printf("%d: %v \n", i, job)
-		// }
+		for _, action := range cfg.Jobs[0].Actions {
+			if action.Expect != "" {
+				fmt.Println(action.Expect)
+			} else if action.Send != "" {
+				fmt.Println(action.Send)
+			}
+		}
 	}
 
 }
