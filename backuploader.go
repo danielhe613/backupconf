@@ -1,9 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"time"
+
+	ess "git.eju-inc.com/ess/ess-go-sdk/ess"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -27,24 +30,50 @@ func (b *Backup) execute() {
 
 //ESSClient is the ESS bucket configuration for backup files uploading.
 type ESSClient struct {
-	BucketURL string `yaml:"bucket_url,omitempty"`
-	Username  string `yaml:"username,omitempty"`
-	Password  string `yaml:"password,omitempty"`
+	BucketName string `yaml:"bucket_name,omitempty"`
+	DomainName string `yaml:"domain_name,omitempty"`
+	Username   string `yaml:"username,omitempty"`
+	Password   string `yaml:"password,omitempty"`
 }
 
-func (c *ESSClient) uploadFile(filename string) error {
+func (c *ESSClient) init() error {
+
+	if c.BucketName == "" || c.DomainName == "" {
+		return errors.New("ESSClient is unavailable!")
+	}
+
+	ess.BucketName = c.BucketName
+	ess.DomainName = "." + c.DomainName
+	ess.ConfigTest = &ess.Config{AccessKeyID: c.Username, AccessKeySecret: c.Password}
+	return nil
+}
+
+//UploadFile is used to upload given local file to specified ESS bucket.
+func (c *ESSClient) UploadFile(filename string, localPath string) error {
 
 	fmt.Println("Uploading configuration file " + filename)
+
+	err := c.init()
+	if err != nil {
+		return err
+	}
+
+	key := filename + time.Now().Format("_2006-01-02-15")
+	fmt.Println("Uploading configuration file " + key)
+
+	ess.UploadFile(key, localPath+filename)
+
 	return nil
 }
 
 //Job represents a backup job which will control the device to upload the running configuration to backup server and then push it to ESS.
 type Job struct {
-	JobName  string   `yaml:"job_name"`
-	Username string   `yaml:"user_name"`
-	Targets  []Target `yaml:"targets"`
-	timeout  time.Duration
-	Actions  []Action `yaml:"actions"`
+	JobName   string   `yaml:"job_name"`
+	Username  string   `yaml:"user_name"`
+	LocalPath string   `yaml:"local_path"`
+	Targets   []Target `yaml:"targets"`
+	timeout   time.Duration
+	Actions   []Action `yaml:"actions"`
 }
 
 func (job *Job) execute(timeout time.Duration, uploader *ESSClient) {
@@ -53,7 +82,7 @@ func (job *Job) execute(timeout time.Duration, uploader *ESSClient) {
 		err := job.executeJobOnTarget(target, timeout)
 
 		if err == nil {
-			uploader.uploadFile(target.Filename)
+			uploader.UploadFile(target.Filename, job.LocalPath)
 		}
 	}
 

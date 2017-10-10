@@ -1,11 +1,13 @@
 timeout: 10s
 ess:
-    bucket_url: "demo"
-    username: "abc"
-    password: "abc" 
+    bucket_name: "demo2"
+    domain_name: "essintra.ejucloud.cn"
+    username: "13CF9590006AF252F798"
+    password: "YtxrzxIsfpFjA7SwTfLLwy8Bw21RLhquhbuDYROP" 
 jobs:  
   - job_name: '3K'
     user_name: back
+    local_path: '/home/cloud/backup/'
     targets: 
         - ip: 10.106.254.1
           file_name: HZBA-B01-ACC-N3048A-running-config 
@@ -29,7 +31,7 @@ jobs:
 
         - expect: '#'
 
-        - send: 'copy running-config scp://cloud@10.99.70.34/home/cloud/backup\n'  
+        - send: 'copy running-config scp://cloud@10.99.70.34:/home/cloud/backup\n'  
 
         - expect: 'Enter vrf'
 

@@ -21,3 +21,13 @@ func TestLoadFile(t *testing.T) {
 	}
 
 }
+
+func TestUploadFile(t *testing.T) {
+
+	backup, err := LoadFromFile("backupconf.yaml")
+	if err != nil {
+		return
+	}
+
+	backup.Uploader.UploadFile("LICENSE", "./")
+}
