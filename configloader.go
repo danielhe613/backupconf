@@ -1,9 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
-)
-import (
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
@@ -19,6 +18,13 @@ type Backup struct {
 	Jobs []Job `yaml:"jobs,omitempty"`
 }
 
+func (b *Backup) execute() {
+
+	for _, job := range b.Jobs {
+		job.execute(b.timeout, &b.Uploader)
+	}
+}
+
 //ESSClient is the ESS bucket configuration for backup files uploading.
 type ESSClient struct {
 	BucketURL string `yaml:"bucket_url,omitempty"`
@@ -26,18 +32,48 @@ type ESSClient struct {
 	Password  string `yaml:"password,omitempty"`
 }
 
-//Job represents a backup job which will control the device to upload the running configuration to backup server and then push it to ESS.
-type Job struct {
-	JobName       string   `yaml:"job_name"`
-	Username      string   `yaml:"user_name"`
-	BackupServer  string   `yaml:"backup_server"`
-	BackupPath    string   `yaml:"backup_path"`
-	TargetConfigs []Target `yaml:"targets"`
-	timeout       time.Duration
-	Actions       []Action `yaml:"actions"`
+func (c *ESSClient) uploadFile(filename string) error {
+
+	return nil
 }
 
-//Nothing
+//Job represents a backup job which will control the device to upload the running configuration to backup server and then push it to ESS.
+type Job struct {
+	JobName  string   `yaml:"job_name"`
+	Username string   `yaml:"user_name"`
+	Targets  []Target `yaml:"targets"`
+	timeout  time.Duration
+	Actions  []Action `yaml:"actions"`
+}
+
+func (job *Job) execute(timeout time.Duration, uploader *ESSClient) {
+
+	for _, target := range job.Targets {
+		job.executeJobOnTarget(target, timeout, uploader)
+	}
+
+}
+
+func (job *Job) executeJobOnTarget(target Target, timeout time.Duration, uploader *ESSClient) error {
+
+	sshClient, err := NewSSHClient(target.IP, job.Username, "passwordToModify")
+	if err != nil {
+		fmt.Println("Failed to create SSH Client to target " + target.IP)
+		return err
+	}
+
+	for _, action := range job.Actions {
+		if action.Send != "" {
+			fmt.Println(action.Send)
+			sshClient.Send(action.Send)
+		} else if action.Expect != "" {
+			fmt.Println(action.Expect)
+			sshClient.Expect(action.Expect, timeout)
+		}
+	}
+	return nil
+}
+
 //Target is job's target/devices' backup configuration
 type Target struct {
 	IP       string `yaml:"ip"`
@@ -77,8 +113,8 @@ func Load(s string) (*Backup, error) {
 	return cfg, nil
 }
 
-// LoadFile parses the given YAML file into a Config.
-func LoadFile(filename string) (*Backup, error) {
+// LoadFromFile parses the given YAML file into a Config.
+func LoadFromFile(filename string) (*Backup, error) {
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -87,5 +123,14 @@ func LoadFile(filename string) (*Backup, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//Parse the timeout string
+	timeout, err := time.ParseDuration(cfg.TimeoutStr)
+	if err != nil {
+		fmt.Println("The timeout defined in global config is invalid!")
+		return nil, err
+	}
+	cfg.timeout = timeout
+
 	return cfg, nil
 }

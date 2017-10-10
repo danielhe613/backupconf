@@ -6,7 +6,7 @@ import (
 )
 
 func TestLoadFile(t *testing.T) {
-	cfg, err := LoadFile("backupconf.yaml")
+	cfg, err := LoadFromFile("backupconf.yaml")
 
 	if err != nil {
 		fmt.Println(err.Error())

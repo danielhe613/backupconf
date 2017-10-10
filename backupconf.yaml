@@ -1,18 +1,16 @@
 timeout: 10s
 ess:
-      bucket_url: "demo"
-      username: "abc"
-      password: "abc" 
+    bucket_url: "demo"
+    username: "abc"
+    password: "abc" 
 jobs:  
   - job_name: '3K'
     user_name: back
-    backup_server: 10.99.70.34
-    backup_path: /home/cloud/backup
     targets: 
-        - ip: 10.0.254.151
+        - ip: 10.106.254.1
           file_name: HZBA-B01-ACC-N3048A-running-config 
-        - ip: 10.0.254.152
-          file_name: HZBA-B02-ACC-N3048A-running-config 
+        # - ip: 10.0.254.152
+        #   file_name: HZBA-B02-ACC-N3048A-running-config 
     actions:
         # Don't need to support multiple expects in version 1.0
         # - expects:
@@ -27,7 +25,7 @@ jobs:
         - expect: 'Password:'
           # label: 'enter_password'
 
-        - send: 'back23433\n'
+        - send: 'ehouse\n'
 
         - expect: '#'
 
@@ -39,7 +37,7 @@ jobs:
 
         - expect: 'password:'
 
-        - send: 'back23433\n'
+        - send: 'eju\n'
 
         - expect: '#'
 
