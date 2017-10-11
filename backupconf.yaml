@@ -1,46 +1,51 @@
-timeout: 10s
+timeout: 60s
 ess:
-    bucket_name: "demo1"
-    domain_name: "essintra.ejucloud.cn"
-    # username: "abc"
-    # password: "abc" 
+    bucket_name: "demo2"
+    domain_name: "essintra.cloud.cn"
+    username: "13CF9596AF252F798"
+    password: "YtxrzxIwTfLLwy8Bw21RLhquhbuDYROP" 
 jobs:  
   - job_name: '3K'
-    user_name: back
-    local_path: '/home/cloud/backup/'
+    username: back
+    password: 'ehouse'
+    local_path: './'
     targets: 
-        - ip: 10.106.254.1
-          file_name: HZBA-B01-ACC-N3048A-running-config 
-        # - ip: 10.0.254.152
-        #   file_name: HZBA-B02-ACC-N3048A-running-config 
+        # - ip: 10.106.254.1
+        #   file_name: HZBA-B01-ACC-N3048A-running-config 
+        - ip: 10.0.254.152
+          file_name: sw2960-vm-b-confg 
     actions:
-        # Don't need to support multiple expects in version 1.0
-        # - expects:
-        #   - expect: 'key fingerprint'
-        #     goto: 'accept_fingerprint'   
-        #   - expect: 'Password:'
-        #     goto: 'enter_password'                       
+        - expect: '>'
 
-        # - send: 'yes'
-        #   label: 'accept_fingerprint'
-          
+        ## 需要使用双引号对 \n 进行转义。 
+        - send: "en 5\n"
+
+        - expect: 'Password:'  
+
+        - send: "back\n"
+
+
+        - expect: 'SW2960-VM-B#'
+
+        - send: "copy running-config scp://cloud@10.99.70.34\n"  
+
+        - expect: '[10.99.70.34]?'
+
+        - send: "\n"
+
+        - expect: '[cloud]?'
+
+        - send: "\n"
+
+        - expect: '?'
+
+        - send: "\n"
+
+
         - expect: 'Password:'
-          # label: 'enter_password'
 
-        - send: 'ehouse\n'
-
-        - expect: '#'
-
-        - send: 'copy running-config scp://cloud@10.99.70.34/home/cloud/backup\n'  
-
-        - expect: 'Enter vrf'
-
-        - send: '\n'
-
-        - expect: 'password:'
-
-        - send: 'eju\n'
+        - send: "cloud\n"
 
         - expect: '#'
 
-        - send: 'exit\n'  
+        - send: "exit\n"

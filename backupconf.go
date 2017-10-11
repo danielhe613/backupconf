@@ -6,14 +6,15 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
 func init() {
+	flag.Parse()
 
 	// Only log the warning severity or above.
-	logLevel := flag.String("log.level", "info", "--log.level=<panic|fatal|error|warn|info|debug>")
 	switch *logLevel {
 	case "panic":
 		log.SetLevel(log.PanicLevel)
@@ -34,23 +35,28 @@ func init() {
 
 	// Output to stdout instead of the default stderr by default.
 	// Can be any io.Writer, see below for File example
-	log.SetOutput(os.Stdout)
+	// log.SetOutput(os.Stdout)
 
+	logFilename := "backupconf_" + dateString + ".log"
+	var err error
+	logFile, err = os.OpenFile(logFilename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		log.SetOutput(logFile)
+	}
 }
+
+var (
+	essTimestamp = time.Now().Format("_2006-01-02-15")
+	dateString   = time.Now().Format("2006-01-02")
+	configFile   = flag.String("config.file", "backupconf.yaml", "-config.file=<configuration file name>")
+	logLevel     = flag.String("log.level", "warn", "-log.level=<panic|fatal|error|warn|info|debug>")
+	logFile      *os.File
+)
 
 func main() {
 
-	logfileName := flag.String("log.file", "backupconf.log", "--log.file=<log file name>")
-	configFile := flag.String("config.file", "backupconf.yaml", "--config.file=<configuration file name>")
-	flag.Parse()
-
 	//Log initialization
-	file, err := os.OpenFile(*logfileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err == nil {
-		log.SetOutput(file)
-	}
-	defer file.Close()
-
+	defer logFile.Close()
 	defer log.Info("The Network Device Runtime Configuration Backup is Stopped!")
 
 	log.WithFields(log.Fields{

@@ -55,7 +55,7 @@ func (c *ESSClient) UploadFile(filename string, localPath string) error {
 		return err
 	}
 
-	key := filename + time.Now().Format("_2006-01-02-15")
+	key := filename + essTimestamp
 	localFilePath := localPath + filename
 	log.Info("Uploading local configuration file ", localFilePath, " to ESS as ", key)
 

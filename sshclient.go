@@ -43,22 +43,22 @@ func (c *SSHClient) Expect(expected string, timeout time.Duration) error {
 
 	t1 := time.NewTimer(timeout)
 	c.in <- 1
+	time.Sleep(time.Second * 1)
 
 	for {
 		select {
 		case <-t1.C:
 			return errors.New("Read expected string timeout")
 		case res := <-c.out:
-			t1.Stop()
 			buf.Write(res)
-			log.WithFields(log.Fields{
-				"target": c.ip,
-			}).Infof("Expected: %s, Already Read: %s", expected, buf.String())
+			log.WithFields(log.Fields{"target": c.ip}).Infof("Expected: %s, Already Read: %s", expected, buf.String())
 			if strings.Contains(buf.String(), expected) {
+				t1.Stop()
 				return nil
 			}
 			c.in <- 1
-			t1.Reset(timeout)
+			time.Sleep(time.Second * 1)
+			// t1.Reset(timeout)
 		}
 
 	}
