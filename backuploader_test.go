@@ -26,8 +26,13 @@ func TestUploadFile(t *testing.T) {
 
 	backup, err := LoadFromFile("backupconf.yaml")
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
-	backup.Uploader.UploadFile("LICENSE", "./")
+	err = backup.Uploader.UploadFile("sw2960-vm-b-confg", "./")
+	if err != nil {
+		fmt.Println(err)
+	}
+
 }

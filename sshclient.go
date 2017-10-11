@@ -28,7 +28,8 @@ type SSHClient struct {
 }
 
 func (c *SSHClient) Send(input string) error {
-	_, err := c.w.Write([]byte(input + "\n"))
+	fmt.Printf("Write: %s\n", input)
+	_, err := c.w.Write([]byte(input))
 	return err
 }
 
@@ -46,7 +47,7 @@ func (c *SSHClient) Expect(expected string, timeout time.Duration) error {
 		case res := <-c.out:
 			t1.Stop()
 			buf.Write(res)
-			fmt.Printf("%s", string(res))
+			fmt.Printf("Read: %s, Expected: %s \n", string(res), expected)
 			if strings.Contains(buf.String(), expected) {
 				return nil
 			}
@@ -115,7 +116,7 @@ func NewSSHClient(ip string, user string, password string) (*SSHClient, error) {
 	}
 
 	modes := ssh.TerminalModes{
-		ssh.ECHO:          0,     // enable echoing
+		ssh.ECHO:          1,     // enable echoing
 		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
 		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 	}

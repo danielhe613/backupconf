@@ -1,9 +1,9 @@
 timeout: 10s
 ess:
-    bucket_name: "demo2"
+    bucket_name: "demo1"
     domain_name: "essintra.ejucloud.cn"
-    username: "13CF9590006AF252F798"
-    password: "YtxrzxIsfpFjA7SwTfLLwy8Bw21RLhquhbuDYROP" 
+    # username: "abc"
+    # password: "abc" 
 jobs:  
   - job_name: '3K'
     user_name: back
@@ -31,7 +31,7 @@ jobs:
 
         - expect: '#'
 
-        - send: 'copy running-config scp://cloud@10.99.70.34:/home/cloud/backup\n'  
+        - send: 'copy running-config scp://cloud@10.99.70.34/home/cloud/backup\n'  
 
         - expect: 'Enter vrf'
 

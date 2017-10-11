@@ -69,7 +69,8 @@ func (c *ESSClient) UploadFile(filename string, localPath string) error {
 //Job represents a backup job which will control the device to upload the running configuration to backup server and then push it to ESS.
 type Job struct {
 	JobName   string   `yaml:"job_name"`
-	Username  string   `yaml:"user_name"`
+	Username  string   `yaml:"username"`
+	Password  string   `yaml:"password"`
 	LocalPath string   `yaml:"local_path"`
 	Targets   []Target `yaml:"targets"`
 	timeout   time.Duration
@@ -90,7 +91,7 @@ func (job *Job) execute(timeout time.Duration, uploader *ESSClient) {
 
 func (job *Job) executeJobOnTarget(target Target, timeout time.Duration) error {
 
-	sshClient, err := NewSSHClient(target.IP, job.Username, "passwordToModify")
+	sshClient, err := NewSSHClient(target.IP, job.Username, job.Password)
 	if err != nil {
 		fmt.Println("Failed to create SSH Client to target " + target.IP)
 		return err
@@ -99,11 +100,19 @@ func (job *Job) executeJobOnTarget(target Target, timeout time.Duration) error {
 
 	for _, action := range job.Actions {
 		if action.Send != "" {
-			fmt.Println(action.Send)
-			sshClient.Send(action.Send)
+			//fmt.Println(action.Send)
+			err := sshClient.Send(action.Send)
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
 		} else if action.Expect != "" {
-			fmt.Println(action.Expect)
-			sshClient.Expect(action.Expect, timeout)
+			//fmt.Println(action.Expect)
+			err := sshClient.Expect(action.Expect, timeout)
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
 		}
 	}
 	return nil
