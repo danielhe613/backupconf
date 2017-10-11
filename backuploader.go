@@ -2,12 +2,11 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"time"
 
 	ess "git.eju-inc.com/ess/ess-go-sdk/ess"
-
+	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -39,7 +38,7 @@ type ESSClient struct {
 func (c *ESSClient) init() error {
 
 	if c.BucketName == "" || c.DomainName == "" {
-		return errors.New("ESSClient is unavailable!")
+		return errors.New("ESSClient is unavailable")
 	}
 
 	ess.BucketName = c.BucketName
@@ -51,17 +50,16 @@ func (c *ESSClient) init() error {
 //UploadFile is used to upload given local file to specified ESS bucket.
 func (c *ESSClient) UploadFile(filename string, localPath string) error {
 
-	fmt.Println("Uploading configuration file " + filename)
-
 	err := c.init()
 	if err != nil {
 		return err
 	}
 
 	key := filename + time.Now().Format("_2006-01-02-15")
-	fmt.Println("Uploading configuration file " + key)
+	localFilePath := localPath + filename
+	log.Info("Uploading local configuration file ", localFilePath, " to ESS as ", key)
 
-	ess.UploadFile(key, localPath+filename)
+	ess.UploadFile(key, localFilePath)
 
 	return nil
 }
@@ -93,24 +91,22 @@ func (job *Job) executeJobOnTarget(target Target, timeout time.Duration) error {
 
 	sshClient, err := NewSSHClient(target.IP, job.Username, job.Password)
 	if err != nil {
-		fmt.Println("Failed to create SSH Client to target " + target.IP)
+		log.WithFields(log.Fields{"job": job.JobName, "target": target.IP}).Error("Failed to create SSH Client to target")
 		return err
 	}
 	defer sshClient.Close()
 
 	for _, action := range job.Actions {
 		if action.Send != "" {
-			//fmt.Println(action.Send)
 			err := sshClient.Send(action.Send)
 			if err != nil {
-				fmt.Println(err)
+				log.WithFields(log.Fields{"job": job.JobName, "target": target.IP}).Error(err)
 				break
 			}
 		} else if action.Expect != "" {
-			//fmt.Println(action.Expect)
 			err := sshClient.Expect(action.Expect, timeout)
 			if err != nil {
-				fmt.Println(err)
+				log.WithFields(log.Fields{"job": job.JobName, "target": target.IP}).Error(err)
 				break
 			}
 		}
@@ -171,7 +167,7 @@ func LoadFromFile(filename string) (*Backup, error) {
 	//Parse the timeout string
 	timeout, err := time.ParseDuration(cfg.TimeoutStr)
 	if err != nil {
-		fmt.Println("The timeout defined in global config is invalid!")
+		log.Error("The timeout defined in global config is invalid!")
 		return nil, err
 	}
 	cfg.timeout = timeout

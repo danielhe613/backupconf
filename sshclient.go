@@ -6,14 +6,15 @@ package main
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	ssh "golang.org/x/crypto/ssh"
 )
 
+//SSHClient encapsulates the SSH channel used to communicate with the network device.
 type SSHClient struct {
 	ip       string
 	user     string
@@ -27,8 +28,11 @@ type SSHClient struct {
 	quit     chan int
 }
 
+//Send will write the given string to ssh channel.
 func (c *SSHClient) Send(input string) error {
-	fmt.Printf("Write: %s\n", input)
+	log.WithFields(log.Fields{
+		"target": c.ip,
+	}).Infof("Write: %s", input)
 	_, err := c.w.Write([]byte(input))
 	return err
 }
@@ -43,11 +47,13 @@ func (c *SSHClient) Expect(expected string, timeout time.Duration) error {
 	for {
 		select {
 		case <-t1.C:
-			return errors.New("Timeout")
+			return errors.New("Read expected string timeout")
 		case res := <-c.out:
 			t1.Stop()
 			buf.Write(res)
-			fmt.Printf("Read: %s, Expected: %s \n", string(res), expected)
+			log.WithFields(log.Fields{
+				"target": c.ip,
+			}).Infof("Expected: %s, Already Read: %s", expected, buf.String())
 			if strings.Contains(buf.String(), expected) {
 				return nil
 			}
@@ -66,7 +72,9 @@ func (c *SSHClient) doRead() error {
 			rbuf := make([]byte, 32*1024)
 			n, err := c.r.Read(rbuf)
 			if err != nil {
-				fmt.Printf("doRead() exits due to %s\n", err.Error())
+				log.WithFields(log.Fields{
+					"target": c.ip,
+				}).Infof("doRead() exits due to %s", err.Error())
 				return err
 			}
 			c.out <- rbuf[:n]
@@ -76,6 +84,7 @@ func (c *SSHClient) doRead() error {
 	}
 }
 
+//Close should be called to release the resources used by SSH client instance.
 func (c *SSHClient) Close() {
 
 	if c.client != nil {
@@ -92,6 +101,7 @@ func (c *SSHClient) Close() {
 	close(c.quit)
 }
 
+//NewSSHClient is used to create a new SSHClient instance.
 func NewSSHClient(ip string, user string, password string) (*SSHClient, error) {
 
 	sshClient := &SSHClient{ip: ip, user: user, password: password}
@@ -116,7 +126,7 @@ func NewSSHClient(ip string, user string, password string) (*SSHClient, error) {
 	}
 
 	modes := ssh.TerminalModes{
-		ssh.ECHO:          1,     // enable echoing
+		ssh.ECHO:          0,     // enable echoing
 		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
 		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 	}
