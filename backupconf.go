@@ -46,10 +46,10 @@ func init() {
 }
 
 var (
-	essTimestamp = time.Now().Format("_2006-01-02-15")
+	essTimestamp = time.Now().Format("2006-01-02-15")
 	dateString   = time.Now().Format("2006-01-02")
 	configFile   = flag.String("config.file", "backupconf.yaml", "-config.file=<configuration file name>")
-	logLevel     = flag.String("log.level", "warn", "-log.level=<panic|fatal|error|warn|info|debug>")
+	logLevel     = flag.String("log.level", "info", "-log.level=<panic|fatal|error|warn|info|debug>")
 	logFile      *os.File
 )
 

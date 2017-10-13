@@ -20,11 +20,18 @@ type Backup struct {
 	Jobs []Job `yaml:"jobs,omitempty"`
 }
 
-func (b *Backup) execute() {
+func (b *Backup) execute() error {
+
+	var lastError error
+	lastError = nil
 
 	for _, job := range b.Jobs {
-		job.execute(b.timeout, &b.Uploader)
+		err := job.execute(b.timeout, &b.Uploader)
+		if err != nil {
+			lastError = err
+		}
 	}
+	return lastError
 }
 
 //ESSClient is the ESS bucket configuration for backup files uploading.
@@ -55,11 +62,15 @@ func (c *ESSClient) UploadFile(filename string, localPath string) error {
 		return err
 	}
 
-	key := filename + essTimestamp
+	key := essTimestamp + "/" + filename
 	localFilePath := localPath + filename
 	log.Info("Uploading local configuration file ", localFilePath, " to ESS as ", key)
 
-	ess.UploadFile(key, localFilePath)
+	err = ess.UploadFile(key, localFilePath)
+	if err != nil {
+		log.Errorf("Failed to upload file key=%s to ESS due to %s", key, err)
+		return err
+	}
 
 	return nil
 }
@@ -75,16 +86,25 @@ type Job struct {
 	Actions   []Action `yaml:"actions"`
 }
 
-func (job *Job) execute(timeout time.Duration, uploader *ESSClient) {
+func (job *Job) execute(timeout time.Duration, uploader *ESSClient) error {
+
+	var lastError error
+	lastError = nil
 
 	for _, target := range job.Targets {
 		err := job.executeJobOnTarget(target, timeout)
+		if err != nil {
+			lastError = err
+			continue
+		}
 
-		if err == nil {
-			uploader.UploadFile(target.Filename, job.LocalPath)
+		err = uploader.UploadFile(target.Filename, job.LocalPath)
+		if err != nil {
+			lastError = err
 		}
 	}
 
+	return lastError
 }
 
 func (job *Job) executeJobOnTarget(target Target, timeout time.Duration) error {
